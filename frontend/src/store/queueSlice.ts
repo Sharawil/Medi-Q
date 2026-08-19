@@ -81,6 +81,6 @@ const queueSlice = createSlice({
   },
 });
 
-export const { setTokens, setCurrentToken, setStats, addToken, updateTokenStatus, setLoading, setError, clearCurrentToken } = queueSlice.actions;
+export const { setTokens, setCurrentToken, addToken, updateTokenStatus, setLoading, setError, clearCurrentToken } = queueSlice.actions;
 
 export default queueSlice.reducer;

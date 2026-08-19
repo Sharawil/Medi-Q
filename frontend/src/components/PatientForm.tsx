@@ -22,7 +22,7 @@ const PatientForm: React.FC<PatientFormProps> = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev: any) => ({ ...prev, [name]: value }));
     // Clear error for this field
     if (errors[name]) {
       setErrors(prev => {

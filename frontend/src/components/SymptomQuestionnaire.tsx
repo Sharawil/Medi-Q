@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiArrowRight, FiArrowLeft, FiAlertCircle, FiCheck, FiCheckCircle } from 'react-icons/fi';
+import { FiArrowRight, FiAlertCircle } from 'react-icons/fi';
 
 interface SymptomQuestionnaireProps {
   affectedAreas: Array<{bodyPart: string; severity: number; description?: string}>;
@@ -14,8 +14,10 @@ const SymptomQuestionnaire: React.FC<SymptomQuestionnaireProps> = ({
   isSubmitting,
   error
 }) => {
+  // Get the first body part (we only expect one)
   const bodyPart = affectedAreas[0]?.bodyPart || '';
 
+  // Map body part to question set
   const getQuestionsForBodyPart = (part: string) => {
     const questions: Array<{
       id: string;
@@ -29,6 +31,7 @@ const SymptomQuestionnaire: React.FC<SymptomQuestionnaireProps> = ({
       dependsOn?: { field: string; value: any };
     }> = [];
 
+    // Always include these basic questions
     questions.push(
       {
         id: 'primarySymptom',
@@ -38,7 +41,7 @@ const SymptomQuestionnaire: React.FC<SymptomQuestionnaireProps> = ({
         options: [
           { value: 'pain', label: 'Pain' },
           { value: 'discomfort', label: 'Discomfort' },
-          { value: 'numbness', label: 'Numbness / Tingling' },
+          { value: 'numbness', label: 'Numbness/Tingling' },
           { value: 'swelling', label: 'Swelling' },
           { value: 'stiffness', label: 'Stiffness' },
           { value: 'weakness', label: 'Weakness' },
@@ -58,7 +61,7 @@ const SymptomQuestionnaire: React.FC<SymptomQuestionnaireProps> = ({
         required: true,
         options: [
           { value: 'constant', label: 'Constant' },
-          { value: 'frequent', label: 'Frequent (multiple times / day)' },
+          { value: 'frequent', label: 'Frequent (multiple times per day)' },
           { value: 'occasional', label: 'Occasional (once per day)' },
           { value: 'rare', label: 'Rare (less than once per day)' },
         ]
@@ -74,8 +77,9 @@ const SymptomQuestionnaire: React.FC<SymptomQuestionnaireProps> = ({
       }
     );
 
+    // Add specific questions based on body part
     switch (part) {
-      case 'head':
+      case 'head': // Covers Head, Eyes, Ear, Nose, Throat
         questions.push(
           {
             id: 'headache',
@@ -99,7 +103,7 @@ const SymptomQuestionnaire: React.FC<SymptomQuestionnaireProps> = ({
           }
         );
         break;
-      case 'chest':
+      case 'chest': // Covers Chest
         questions.push(
           {
             id: 'chestPain',
@@ -123,8 +127,7 @@ const SymptomQuestionnaire: React.FC<SymptomQuestionnaireProps> = ({
           }
         );
         break;
-      case 'abdomen':
-      case 'stomach':
+      case 'abdomen': // Covers Stomach
         questions.push(
           {
             id: 'nausea',
@@ -148,8 +151,7 @@ const SymptomQuestionnaire: React.FC<SymptomQuestionnaireProps> = ({
           }
         );
         break;
-      case 'upper_back':
-      case 'back':
+      case 'upper_back': // Covers Back
         questions.push(
           {
             id: 'backPain',
@@ -173,7 +175,7 @@ const SymptomQuestionnaire: React.FC<SymptomQuestionnaireProps> = ({
           }
         );
         break;
-      default:
+      default: // For Hand, Leg, Skin, Other, etc. - use a general set
         questions.push(
           {
             id: 'numbnessTingling',
@@ -199,6 +201,7 @@ const SymptomQuestionnaire: React.FC<SymptomQuestionnaireProps> = ({
         break;
     }
 
+    // General systemic questions
     questions.push(
       {
         id: 'fever',
@@ -232,6 +235,7 @@ const SymptomQuestionnaire: React.FC<SymptomQuestionnaireProps> = ({
       }
     );
 
+    // Description field
     questions.push({
       id: 'description',
       label: 'Additional details about your symptoms',
@@ -332,7 +336,9 @@ const SymptomQuestionnaire: React.FC<SymptomQuestionnaireProps> = ({
                   <dd className="mt-1 text-sm text-gray-900">
                     {Array.isArray(answers[question.id])
                       ? answers[question.id].join(', ')
-                      : answers[question.id]}
+                      : typeof answers[question.id] === 'object' && answers[question.id].value !== undefined && answers[question.id].unit !== undefined
+                        ? `${answers[question.id].value} ${answers[question.id].unit}`
+                        : answers[question.id]}
                   </dd>
                 </div>
               ))}

@@ -176,7 +176,7 @@ const Login: React.FC = () => {
               autoComplete={isSetup ? "username" : "email"}
               required
               className="w-full px-4 py-3 bg-white text-slate-900 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors font-medium"
-              placeholder={isSetup ? "Enter username/email" : "doc@medic.com"}
+              placeholder={isSetup ? "doc@medic.com" : "doc@medic.com"}
               value={formData.username}
               onChange={handleChange}
             />
@@ -196,7 +196,7 @@ const Login: React.FC = () => {
                 autoComplete={isSetup ? "current-password" : "new-password"}
                 required
                 className="w-full px-4 py-3 bg-white text-slate-900 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors font-medium pr-12"
-                placeholder={isSetup ? "Enter password" : "Enter password (min 6 chars)"}
+                placeholder={isSetup ? "mediq123" : "Enter password (min 6 chars)"}
                 value={formData.password}
                 onChange={handleChange}
               />
@@ -239,7 +239,7 @@ const Login: React.FC = () => {
           <div className="pt-2">
             <button
               type="submit"
-              className={`w-full py-3.5 px-4 font-extrabold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 ${
+              className={`w-full py-3.5 px-4 font-extrabod rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 ${
                 isSetup
                   ? 'bg-red-600 hover:bg-red-700 active:bg-red-800 text-white shadow-red-200'
                   : 'bg-green-600 hover:bg-green-700 active:bg-green-800 text-white shadow-green-200'
