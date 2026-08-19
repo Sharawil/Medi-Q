@@ -96,23 +96,6 @@ const Login: React.FC = () => {
     }
   };
 
-  const handleSwitchToLogin = () => {
-    setIsSetup(true);
-    setFormData({ name: '', username: '', password: '', confirmPassword: '' });
-    setError(null);
-  };
-
-  const handleSwitchToSetup = () => {
-    // Only allow switching back to setup if no credentials exist (for testing)
-    // In production, you might want to remove this or add a reset option
-    const savedCredentials = localStorage.getItem('doctor_credentials');
-    if (!savedCredentials) {
-      setIsSetup(false);
-      setFormData({ name: '', username: '', password: '', confirmPassword: '' });
-      setError(null);
-    }
-  };
-
   return (
     <div className="py-8 flex items-center justify-center">
       <div className="w-full max-w-md bg-white border border-red-100 rounded-3xl p-8 sm:p-10 shadow-xl shadow-red-100 space-y-6">
@@ -280,31 +263,6 @@ const Login: React.FC = () => {
             </button>
           </div>
         </form>
-
-        {/* Switch between Setup and Login */}
-        <div className="text-center text-sm font-medium text-slate-500 pt-4 border-t border-slate-100">
-          {isSetup ? (
-            <>
-              <span>First time? </span>
-              <button
-                onClick={handleSwitchToSetup}
-                className="text-green-600 hover:text-green-800 font-extrabold transition-colors"
-              >
-                Create Account
-              </button>
-            </>
-          ) : (
-            <>
-              <span>Already have an account? </span>
-              <button
-                onClick={handleSwitchToLogin}
-                className="text-red-600 hover:text-red-800 font-extrabold transition-colors"
-              >
-                Sign In
-              </button>
-            </>
-          )}
-        </div>
 
         <p className="text-center text-sm font-semibold text-slate-500">
           <Link to="/" className="text-red-600 hover:text-red-800 transition-colors">
