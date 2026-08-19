@@ -17,6 +17,11 @@ interface QueueToken {
   completedAt?: string;
 }
 
+interface DoctorInfo {
+  name: string;
+  username: string;
+}
+
 const DoctorDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [activeQueue, setActiveQueue] = useState<QueueToken[]>([]);
@@ -25,6 +30,22 @@ const DoctorDashboard: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedToken, setSelectedToken] = useState<QueueToken | null>(null);
+  const [doctorInfo, setDoctorInfo] = useState<DoctorInfo | null>(null);
+
+  const loadDoctorInfo = () => {
+    try {
+      const storedDoctor = localStorage.getItem('doctor_credentials');
+      if (storedDoctor) {
+        const doctor = JSON.parse(storedDoctor);
+        setDoctorInfo({
+          name: doctor.name,
+          username: doctor.username
+        });
+      }
+    } catch (err) {
+      console.error('Failed to load doctor info:', err);
+    }
+  };
 
   const loadData = () => {
     try {
@@ -48,10 +69,14 @@ const DoctorDashboard: React.FC = () => {
       return;
     }
 
+    loadDoctorInfo();
     loadData();
 
     // Listen for storage updates across tabs or windows
-    const handleStorage = () => loadData();
+    const handleStorage = () => {
+      loadDoctorInfo();
+      loadData();
+    };
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
   }, [navigate]);
@@ -159,8 +184,17 @@ const DoctorDashboard: React.FC = () => {
               <FiUser className="h-4 w-4" />
             </div>
             <div>
-              <p className="text-sm font-black text-slate-900">Dr. Smith</p>
-              <p className="text-xs font-semibold text-red-600">On Duty • doc@medic.com</p>
+              {doctorInfo ? (
+                <>
+                  <p className="text-sm font-black text-slate-900">Dr. {doctorInfo.name}</p>
+                  <p className="text-xs font-semibold text-red-600">On Duty • {doctorInfo.username}</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-black text-slate-900">Doctor</p>
+                  <p className="text-xs font-semibold text-red-600">On Duty • Not Set</p>
+                </>
+              )}
             </div>
           </div>
 
@@ -176,7 +210,7 @@ const DoctorDashboard: React.FC = () => {
 
       {/* Tabs & Queue List Container */}
       <div className="bg-white rounded-3xl border border-red-100 shadow-md overflow-hidden">
-        
+
         {/* Navigation Tabs Header */}
         <div className="px-6 sm:px-8 py-4 bg-gradient-to-r from-red-50 to-white border-b border-red-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center space-x-3">
@@ -311,7 +345,6 @@ const DoctorDashboard: React.FC = () => {
       {selectedToken && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
           <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-red-100">
-            
             {/* Modal Sticky Header */}
             <div className="p-6 border-b border-red-100 flex items-center justify-between sticky top-0 bg-white z-10">
               <div className="flex items-center space-x-3">
@@ -325,17 +358,13 @@ const DoctorDashboard: React.FC = () => {
                   <p className="text-xs font-semibold text-slate-500">Pre-Consultation Overview</p>
                 </div>
               </div>
-              <button 
-                onClick={handleCloseDetails} 
-                className="w-9 h-9 bg-slate-100 hover:bg-red-50 hover:text-red-600 rounded-full flex items-center justify-center text-slate-500 transition-colors"
-              >
+              <button onClick={handleCloseDetails} className="text-slate-500 hover:text-red-600 transition-colors">
                 <FiX className="h-5 w-5" />
               </button>
             </div>
 
             {/* Modal Body */}
             <div className="p-6 sm:p-8 space-y-6">
-              
               {/* Patient Basic Profile */}
               <div className="grid grid-cols-3 gap-4 bg-red-50/60 border border-red-100 p-4 rounded-2xl">
                 <div>
@@ -377,26 +406,17 @@ const DoctorDashboard: React.FC = () => {
 
             {/* Modal Footer with Actions */}
             <div className="p-6 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-3 bg-slate-50 rounded-b-3xl">
-              <button
-                onClick={handleCloseDetails}
-                className="w-full sm:w-auto px-5 py-2.5 border border-slate-300 rounded-xl text-slate-700 font-bold hover:bg-slate-200 transition-colors"
-              >
+              <button onClick={handleCloseDetails} className="w-full sm:w-auto px-5 py-2.5 border border-slate-300 rounded-xl text-slate-700 font-bold hover:bg-slate-200 transition-colors">
                 Close Window
               </button>
 
               {activeTab === 'queue' ? (
-                <button
-                  onClick={() => handleCompleteCheckup(selectedToken)}
-                  className="w-full sm:w-auto px-7 py-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-extrabold rounded-xl shadow-md shadow-emerald-200 transition-all flex items-center justify-center gap-2"
-                >
+                <button onClick={() => handleCompleteCheckup(selectedToken)} className="w-full sm:w-auto px-7 py-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-extrabold rounded-xl shadow-md shadow-emerald-200 transition-all flex items-center justify-center gap-2">
                   <FiCheckCircle className="w-5 h-5 stroke-[2.5]" />
                   <span>Checkup Complete (Move to History)</span>
                 </button>
               ) : (
-                <button
-                  onClick={() => handleDeleteHistoryItem(selectedToken.tokenNumber)}
-                  className="w-full sm:w-auto px-6 py-2.5 bg-red-100 hover:bg-red-600 hover:text-white text-red-700 font-extrabold rounded-xl transition-all flex items-center justify-center gap-2"
-                >
+                <button onClick={() => handleDeleteHistoryItem(selectedToken.tokenNumber)} className="w-full sm:w-auto px-6 py-2.5 bg-red-100 hover:bg-red-600 hover:text-white text-red-700 font-extrabold rounded-xl transition-all flex items-center justify-center gap-2">
                   <FiTrash2 className="w-4 h-4" />
                   <span>Delete Record from History</span>
                 </button>
