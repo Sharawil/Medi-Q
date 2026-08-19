@@ -11,6 +11,7 @@ interface Patient {
 interface QueueToken {
   tokenNumber: string;
   patient: Patient;
+  doctor?: Pick<DoctorInfo, 'name' | 'username'>;
   bodyPart: string;
   symptomAnswers: Record<string, any>;
   submittedAt?: string;
@@ -34,6 +35,14 @@ const getStoredDoctors = (): DoctorInfo[] => {
     return legacyDoctor ? [JSON.parse(legacyDoctor)] : [];
   } catch {
     return [];
+  }
+};
+
+const getCurrentDoctorUsername = (): string | null => {
+  try {
+    return JSON.parse(localStorage.getItem('doctor_user') || 'null')?.username || null;
+  } catch {
+    return null;
   }
 };
 
@@ -69,9 +78,10 @@ const DoctorDashboard: React.FC = () => {
     try {
       const storedActive: QueueToken[] = JSON.parse(localStorage.getItem('mediq_queue_tokens') || '[]');
       const storedHistory: QueueToken[] = JSON.parse(localStorage.getItem('mediq_completed_tokens') || '[]');
+      const currentDoctorUsername = getCurrentDoctorUsername();
 
-      setActiveQueue(storedActive);
-      setCompletedHistory(storedHistory);
+      setActiveQueue(storedActive.filter(token => token.doctor?.username === currentDoctorUsername));
+      setCompletedHistory(storedHistory.filter(token => token.doctor?.username === currentDoctorUsername));
       setLoading(false);
     } catch (err) {
       setError('Failed to load queue data');
@@ -158,13 +168,17 @@ const DoctorDashboard: React.FC = () => {
       completedAt: timestamp
     };
 
-    const updatedActive = activeQueue.filter(item => item.tokenNumber !== tokenToComplete.tokenNumber);
+    const allActive: QueueToken[] = JSON.parse(localStorage.getItem('mediq_queue_tokens') || '[]');
+    const updatedActive = allActive.filter(item =>
+      item.tokenNumber !== tokenToComplete.tokenNumber || item.doctor?.username !== tokenToComplete.doctor?.username
+    );
     localStorage.setItem('mediq_queue_tokens', JSON.stringify(updatedActive));
-    setActiveQueue(updatedActive);
+    setActiveQueue(updatedActive.filter(token => token.doctor?.username === getCurrentDoctorUsername()));
 
-    const updatedHistory = [completedItem, ...completedHistory];
+    const allHistory: QueueToken[] = JSON.parse(localStorage.getItem('mediq_completed_tokens') || '[]');
+    const updatedHistory = [completedItem, ...allHistory];
     localStorage.setItem('mediq_completed_tokens', JSON.stringify(updatedHistory));
-    setCompletedHistory(updatedHistory);
+    setCompletedHistory(updatedHistory.filter(token => token.doctor?.username === getCurrentDoctorUsername()));
 
     setSelectedToken(null);
   };
@@ -172,9 +186,12 @@ const DoctorDashboard: React.FC = () => {
   // Delete single item from history
   const handleDeleteHistoryItem = (tokenNumber: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    const updatedHistory = completedHistory.filter(item => item.tokenNumber !== tokenNumber);
+    const allHistory: QueueToken[] = JSON.parse(localStorage.getItem('mediq_completed_tokens') || '[]');
+    const updatedHistory = allHistory.filter(item =>
+      item.tokenNumber !== tokenNumber || item.doctor?.username !== getCurrentDoctorUsername()
+    );
     localStorage.setItem('mediq_completed_tokens', JSON.stringify(updatedHistory));
-    setCompletedHistory(updatedHistory);
+    setCompletedHistory(updatedHistory.filter(token => token.doctor?.username === getCurrentDoctorUsername()));
     if (selectedToken?.tokenNumber === tokenNumber) {
       setSelectedToken(null);
     }
@@ -183,7 +200,12 @@ const DoctorDashboard: React.FC = () => {
   // Clear all completed history
   const handleClearAllHistory = () => {
     if (window.confirm('Are you sure you want to clear all consultation history records?')) {
-      localStorage.removeItem('mediq_completed_tokens');
+      const currentDoctorUsername = getCurrentDoctorUsername();
+      const allHistory: QueueToken[] = JSON.parse(localStorage.getItem('mediq_completed_tokens') || '[]');
+      localStorage.setItem(
+        'mediq_completed_tokens',
+        JSON.stringify(allHistory.filter(token => token.doctor?.username !== currentDoctorUsername))
+      );
       setCompletedHistory([]);
       setSelectedToken(null);
     }
@@ -403,6 +425,12 @@ const DoctorDashboard: React.FC = () => {
                     <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700 font-bold">
                       Area: {token.bodyPart}
                     </span>
+                    {token.doctor && (
+                      <>
+                        <span>•</span>
+                        <span className="text-red-600 font-extrabold">Dr. {token.doctor.name}</span>
+                      </>
+                    )}
                     {token.submittedAt && (
                       <>
                         <span>•</span>
@@ -489,6 +517,12 @@ const DoctorDashboard: React.FC = () => {
                   <p className="text-xs font-bold text-slate-500 uppercase">Affected Area</p>
                   <p className="text-base font-black text-slate-900">{selectedToken.bodyPart}</p>
                 </div>
+                {selectedToken.doctor && (
+                  <div>
+                    <p className="text-xs font-bold text-slate-500 uppercase">Requested Doctor</p>
+                    <p className="text-base font-black text-slate-900">Dr. {selectedToken.doctor.name}</p>
+                  </div>
+                )}
               </div>
 
               {/* Symptom Answers */}

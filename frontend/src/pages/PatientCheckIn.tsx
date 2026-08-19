@@ -8,6 +8,23 @@ interface QueueToken {
   tokenNumber: string;
 }
 
+interface Doctor {
+  name: string;
+  username: string;
+}
+
+const getDoctors = (): Doctor[] => {
+  try {
+    const savedDoctors = localStorage.getItem('mediq_doctors');
+    if (savedDoctors) return JSON.parse(savedDoctors);
+
+    const legacyDoctor = localStorage.getItem('doctor_credentials');
+    return legacyDoctor ? [JSON.parse(legacyDoctor)] : [];
+  } catch {
+    return [];
+  }
+};
+
 interface PatientCheckInProps {}
 
 const PatientCheckIn: React.FC<PatientCheckInProps> = () => {
@@ -16,6 +33,8 @@ const PatientCheckIn: React.FC<PatientCheckInProps> = () => {
   const [queueToken, setQueueToken] = useState<QueueToken | null>(null);
   const [selectedBodyPart, setSelectedBodyPart] = useState<string>('');
   const [symptomAnswers, setSymptomAnswers] = useState<any>({});
+  const [doctors] = useState<Doctor[]>(getDoctors);
+  const [selectedDoctorUsername, setSelectedDoctorUsername] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,6 +73,12 @@ const PatientCheckIn: React.FC<PatientCheckInProps> = () => {
   };
 
   const handleFinalSubmit = async () => {
+    const selectedDoctor = doctors.find(doctor => doctor.username === selectedDoctorUsername);
+    if (!selectedDoctor) {
+      setError('Please select the doctor you are here to meet.');
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       setError(null);
@@ -65,6 +90,7 @@ const PatientCheckIn: React.FC<PatientCheckInProps> = () => {
           age: patientData?.age || '30',
           bloodGroup: patientData?.bloodGroup || 'O+'
         },
+        doctor: selectedDoctor,
         bodyPart: selectedBodyPart || 'General',
         symptomAnswers: symptomAnswers || {},
         submittedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -72,7 +98,9 @@ const PatientCheckIn: React.FC<PatientCheckInProps> = () => {
 
       // Persist to localStorage for Doctor Dashboard live access
       const existingQueue = JSON.parse(localStorage.getItem('mediq_queue_tokens') || '[]');
-      const filteredQueue = existingQueue.filter((item: any) => item.tokenNumber !== newSubmission.tokenNumber);
+      const filteredQueue = existingQueue.filter((item: any) =>
+        item.tokenNumber !== newSubmission.tokenNumber || item.doctor?.username !== newSubmission.doctor.username
+      );
       localStorage.setItem('mediq_queue_tokens', JSON.stringify([...filteredQueue, newSubmission]));
 
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -175,12 +203,36 @@ const PatientCheckIn: React.FC<PatientCheckInProps> = () => {
                 <p className="text-xs font-bold uppercase text-slate-400">Selected Body Part</p>
                 <p className="text-base font-extrabold text-slate-900">{selectedBodyPart}</p>
               </div>
+
+              <div className="border-t border-slate-100 pt-4">
+                <label htmlFor="doctor" className="block text-xs font-bold uppercase text-slate-400 mb-2">
+                  Doctor you are here to meet
+                </label>
+                <select
+                  id="doctor"
+                  value={selectedDoctorUsername}
+                  onChange={(event) => {
+                    setSelectedDoctorUsername(event.target.value);
+                    setError(null);
+                  }}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500"
+                  required
+                >
+                  <option value="">Select a doctor</option>
+                  {doctors.map((doctor) => (
+                    <option key={doctor.username} value={doctor.username}>Dr. {doctor.name}</option>
+                  ))}
+                </select>
+                {doctors.length === 0 && <p className="mt-2 text-sm font-medium text-red-600">No doctor account is available yet.</p>}
+              </div>
             </div>
+
+            {error && <p className="text-sm font-medium text-red-600">{error}</p>}
 
             <div className="flex justify-center pt-2">
               <button
                 onClick={handleFinalSubmit}
-                disabled={isSubmitting}
+                disabled={isSubmitting || !selectedDoctorUsername}
                 className="px-10 py-4 bg-red-600 text-white font-black text-lg rounded-2xl hover:bg-red-700 active:bg-red-800 disabled:opacity-50 shadow-xl shadow-red-200 transition-all flex items-center gap-3"
               >
                 {isSubmitting ? 'Submitting...' : 'Confirm & Join Queue'}
