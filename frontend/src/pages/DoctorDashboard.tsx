@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiAlertCircle, FiCheckCircle, FiLoader, FiUser, FiX, FiActivity, FiClock, FiArchive, FiTrash2, FiLogOut } from 'react-icons/fi';
+import { FiAlertCircle, FiCheckCircle, FiLoader, FiUser, FiX, FiActivity, FiArchive, FiTrash2, FiLogOut, FiUserPlus } from 'react-icons/fi';
 
 interface Patient {
   name: string;
@@ -20,7 +20,22 @@ interface QueueToken {
 interface DoctorInfo {
   name: string;
   username: string;
+  password: string;
 }
+
+const DOCTORS_STORAGE_KEY = 'mediq_doctors';
+
+const getStoredDoctors = (): DoctorInfo[] => {
+  try {
+    const savedDoctors = localStorage.getItem(DOCTORS_STORAGE_KEY);
+    if (savedDoctors) return JSON.parse(savedDoctors);
+
+    const legacyDoctor = localStorage.getItem('doctor_credentials');
+    return legacyDoctor ? [JSON.parse(legacyDoctor)] : [];
+  } catch {
+    return [];
+  }
+};
 
 const DoctorDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -31,16 +46,19 @@ const DoctorDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedToken, setSelectedToken] = useState<QueueToken | null>(null);
   const [doctorInfo, setDoctorInfo] = useState<DoctorInfo | null>(null);
+  const [doctors, setDoctors] = useState<DoctorInfo[]>([]);
+  const [showDoctorManager, setShowDoctorManager] = useState(false);
+  const [newDoctor, setNewDoctor] = useState({ name: '', username: '', password: '' });
+  const [doctorError, setDoctorError] = useState<string | null>(null);
 
   const loadDoctorInfo = () => {
     try {
-      const storedDoctor = localStorage.getItem('doctor_credentials');
-      if (storedDoctor) {
-        const doctor = JSON.parse(storedDoctor);
-        setDoctorInfo({
-          name: doctor.name,
-          username: doctor.username
-        });
+      const savedDoctors = getStoredDoctors();
+      setDoctors(savedDoctors);
+      if (savedDoctors.length > 0) {
+        localStorage.setItem(DOCTORS_STORAGE_KEY, JSON.stringify(savedDoctors));
+        const currentDoctor = JSON.parse(localStorage.getItem('doctor_user') || 'null');
+        setDoctorInfo(savedDoctors.find(doctor => doctor.username === currentDoctor?.username) || savedDoctors[0]);
       }
     } catch (err) {
       console.error('Failed to load doctor info:', err);
@@ -85,6 +103,44 @@ const DoctorDashboard: React.FC = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('doctor_user');
     navigate('/doctor/login');
+  };
+
+  const saveDoctors = (updatedDoctors: DoctorInfo[]) => {
+    localStorage.setItem(DOCTORS_STORAGE_KEY, JSON.stringify(updatedDoctors));
+    localStorage.setItem('doctor_credentials', JSON.stringify(updatedDoctors[0]));
+    setDoctors(updatedDoctors);
+  };
+
+  const handleAddDoctor = (event: React.FormEvent) => {
+    event.preventDefault();
+    const doctor = { name: newDoctor.name.trim(), username: newDoctor.username.trim(), password: newDoctor.password };
+
+    if (!doctor.name || !doctor.username || !doctor.password) {
+      setDoctorError('Please complete all doctor details.');
+    } else if (doctor.password.length < 6) {
+      setDoctorError('Password must be at least 6 characters.');
+    } else if (doctors.some(existingDoctor => existingDoctor.username.toLowerCase() === doctor.username.toLowerCase())) {
+      setDoctorError('A doctor with this username already exists.');
+    } else {
+      saveDoctors([...doctors, doctor]);
+      setNewDoctor({ name: '', username: '', password: '' });
+      setDoctorError(null);
+    }
+  };
+
+  const handleRemoveDoctor = (username: string) => {
+    if (doctors.length <= 1) {
+      setDoctorError('At least one doctor account must remain.');
+      return;
+    }
+
+    saveDoctors(doctors.filter(doctor => doctor.username !== username));
+    if (doctorInfo?.username === username) handleLogout();
+  };
+
+  const handleRefresh = () => {
+    localStorage.setItem('mediq_token_counter', '0');
+    loadData();
   };
 
   const handleTokenSelect = (token: QueueToken) => {
@@ -205,8 +261,62 @@ const DoctorDashboard: React.FC = () => {
             <FiLogOut className="w-4 h-4" />
             Sign Out
           </button>
+          <button
+            onClick={() => {
+              setDoctorError(null);
+              setShowDoctorManager(true);
+            }}
+            className="px-4 py-2 bg-slate-100 hover:bg-red-600 hover:text-white text-slate-700 text-xs font-extrabold rounded-xl transition-all flex items-center gap-1.5"
+          >
+            <FiUserPlus className="w-4 h-4" />
+            Manage Doctors
+          </button>
         </div>
       </div>
+
+      {showDoctorManager && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-red-100 p-6 space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-black text-slate-900">Manage Doctors</h2>
+                <p className="text-sm text-slate-500">Keep at least one doctor account available.</p>
+              </div>
+              <button onClick={() => setShowDoctorManager(false)} className="text-slate-500 hover:text-red-600">
+                <FiX className="w-5 h-5" />
+              </button>
+            </div>
+
+            {doctorError && <p className="rounded-xl bg-red-50 border border-red-200 p-3 text-sm font-medium text-red-700">{doctorError}</p>}
+
+            <div className="space-y-2">
+              {doctors.map((doctor) => (
+                <div key={doctor.username} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3">
+                  <div>
+                    <p className="font-bold text-slate-900">Dr. {doctor.name}</p>
+                    <p className="text-xs text-slate-500">{doctor.username}</p>
+                  </div>
+                  <button
+                    onClick={() => handleRemoveDoctor(doctor.username)}
+                    disabled={doctors.length === 1}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <form onSubmit={handleAddDoctor} className="space-y-3 border-t border-slate-200 pt-5">
+              <h3 className="font-bold text-slate-900">Add Doctor</h3>
+              <input required value={newDoctor.name} onChange={(event) => setNewDoctor({ ...newDoctor, name: event.target.value })} placeholder="Full name" className="w-full rounded-xl border border-slate-300 px-3 py-2.5" />
+              <input required value={newDoctor.username} onChange={(event) => setNewDoctor({ ...newDoctor, username: event.target.value })} placeholder="Username / email" className="w-full rounded-xl border border-slate-300 px-3 py-2.5" />
+              <input required type="password" minLength={6} value={newDoctor.password} onChange={(event) => setNewDoctor({ ...newDoctor, password: event.target.value })} placeholder="Password (min. 6 characters)" className="w-full rounded-xl border border-slate-300 px-3 py-2.5" />
+              <button type="submit" className="w-full rounded-xl bg-red-600 px-4 py-2.5 font-bold text-white hover:bg-red-700">Add Doctor</button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Tabs & Queue List Container */}
       <div className="bg-white rounded-3xl border border-red-100 shadow-md overflow-hidden">
@@ -251,7 +361,7 @@ const DoctorDashboard: React.FC = () => {
             )}
 
             <button
-              onClick={() => loadData()}
+              onClick={handleRefresh}
               className="text-xs font-bold text-slate-700 hover:text-slate-900 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 transition-colors"
             >
               ↻ Refresh

@@ -8,6 +8,14 @@ interface DoctorCredentials {
   password: string;
 }
 
+const getDoctorCredentials = (): DoctorCredentials[] => {
+  const savedDoctors = localStorage.getItem('mediq_doctors');
+  if (savedDoctors) return JSON.parse(savedDoctors);
+
+  const legacyDoctor = localStorage.getItem('doctor_credentials');
+  return legacyDoctor ? [JSON.parse(legacyDoctor)] : [];
+};
+
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const [isSetup, setIsSetup] = useState(false);
@@ -23,8 +31,7 @@ const Login: React.FC = () => {
 
   // Check if doctor is already set up
   useEffect(() => {
-    const savedCredentials = localStorage.getItem('doctor_credentials');
-    if (savedCredentials) {
+    if (getDoctorCredentials().length > 0) {
       setIsSetup(true);
     }
   }, []);
@@ -48,14 +55,14 @@ const Login: React.FC = () => {
 
       if (isSetup) {
         // Login flow
-        const savedCredentials = localStorage.getItem('doctor_credentials');
-        if (!savedCredentials) {
+        const doctors = getDoctorCredentials();
+        if (doctors.length === 0) {
           throw new Error('No credentials found. Please set up first.');
         }
 
-        const credentials: DoctorCredentials = JSON.parse(savedCredentials);
+        const credentials = doctors.find(doctor => doctor.username === formData.username);
 
-        if (formData.username === credentials.username && formData.password === credentials.password) {
+        if (credentials && formData.password === credentials.password) {
           const mockUser = {
             id: '1',
             name: credentials.name,
@@ -85,6 +92,7 @@ const Login: React.FC = () => {
           password: formData.password
         };
 
+        localStorage.setItem('mediq_doctors', JSON.stringify([credentials]));
         localStorage.setItem('doctor_credentials', JSON.stringify(credentials));
         setIsSetup(true);
         setFormData({ name: '', username: '', password: '', confirmPassword: '' });
