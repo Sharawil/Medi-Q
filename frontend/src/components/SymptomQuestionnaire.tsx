@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiArrowRight, FiArrowLeft, FiAlertCircle, FiCheck, FiCheckCircle } from 'react-icons/fi';
+import { FiArrowRight, FiAlertCircle } from 'react-icons/fi';
 
 interface SymptomQuestionnaireProps {
   affectedAreas: Array<{bodyPart: string; severity: number; description?: string}>;
@@ -14,13 +14,15 @@ const SymptomQuestionnaire: React.FC<SymptomQuestionnaireProps> = ({
   isSubmitting,
   error
 }) => {
+  // Get the first body part (we only expect one)
   const bodyPart = affectedAreas[0]?.bodyPart || '';
 
+  // Map body part to question set
   const getQuestionsForBodyPart = (part: string) => {
     const questions: Array<{
       id: string;
       label: string;
-      type: 'select' | 'radio' | 'checkbox' | 'number' | 'text' | 'textarea' | 'duration';
+      type: 'select' | 'radio' | 'checkbox' | 'number' | 'text' | 'textarea';
       required: boolean;
       options?: Array<{ value: string; label: string }>;
       min?: number;
@@ -29,6 +31,7 @@ const SymptomQuestionnaire: React.FC<SymptomQuestionnaireProps> = ({
       dependsOn?: { field: string; value: any };
     }> = [];
 
+    // Always include these basic questions
     questions.push(
       {
         id: 'primarySymptom',
@@ -38,7 +41,7 @@ const SymptomQuestionnaire: React.FC<SymptomQuestionnaireProps> = ({
         options: [
           { value: 'pain', label: 'Pain' },
           { value: 'discomfort', label: 'Discomfort' },
-          { value: 'numbness', label: 'Numbness / Tingling' },
+          { value: 'numbness', label: 'Numbness/Tingling' },
           { value: 'swelling', label: 'Swelling' },
           { value: 'stiffness', label: 'Stiffness' },
           { value: 'weakness', label: 'Weakness' },
@@ -46,10 +49,24 @@ const SymptomQuestionnaire: React.FC<SymptomQuestionnaireProps> = ({
         ]
       },
       {
-        id: 'symptomDuration',
+        id: 'symptomDuration.value',
         label: 'How long have you had this symptom?',
-        type: 'duration',
+        type: 'number',
         required: true,
+        min: 0,
+        step: 1,
+      },
+      {
+        id: 'symptomDuration.unit',
+        label: 'Duration unit',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'minutes', label: 'Minutes' },
+          { value: 'hours', label: 'Hours' },
+          { value: 'days', label: 'Days' },
+          { value: 'weeks', label: 'Weeks' },
+        ]
       },
       {
         id: 'symptomFrequency',
@@ -58,7 +75,7 @@ const SymptomQuestionnaire: React.FC<SymptomQuestionnaireProps> = ({
         required: true,
         options: [
           { value: 'constant', label: 'Constant' },
-          { value: 'frequent', label: 'Frequent (multiple times / day)' },
+          { value: 'frequent', label: 'Frequent (multiple times per day)' },
           { value: 'occasional', label: 'Occasional (once per day)' },
           { value: 'rare', label: 'Rare (less than once per day)' },
         ]
@@ -74,8 +91,9 @@ const SymptomQuestionnaire: React.FC<SymptomQuestionnaireProps> = ({
       }
     );
 
+    // Add specific questions based on body part
     switch (part) {
-      case 'head':
+      case 'head': // Covers Head, Eyes, Ear, Nose, Throat
         questions.push(
           {
             id: 'headache',
@@ -99,7 +117,7 @@ const SymptomQuestionnaire: React.FC<SymptomQuestionnaireProps> = ({
           }
         );
         break;
-      case 'chest':
+      case 'chest': // Covers Chest
         questions.push(
           {
             id: 'chestPain',
@@ -123,8 +141,7 @@ const SymptomQuestionnaire: React.FC<SymptomQuestionnaireProps> = ({
           }
         );
         break;
-      case 'abdomen':
-      case 'stomach':
+      case 'abdomen': // Covers Stomach
         questions.push(
           {
             id: 'nausea',
@@ -148,8 +165,7 @@ const SymptomQuestionnaire: React.FC<SymptomQuestionnaireProps> = ({
           }
         );
         break;
-      case 'upper_back':
-      case 'back':
+      case 'upper_back': // Covers Back
         questions.push(
           {
             id: 'backPain',
@@ -173,7 +189,7 @@ const SymptomQuestionnaire: React.FC<SymptomQuestionnaireProps> = ({
           }
         );
         break;
-      default:
+      default: // For Hand, Leg, Skin, Other, etc. - use a general set
         questions.push(
           {
             id: 'numbnessTingling',
@@ -199,6 +215,7 @@ const SymptomQuestionnaire: React.FC<SymptomQuestionnaireProps> = ({
         break;
     }
 
+    // General systemic questions
     questions.push(
       {
         id: 'fever',
@@ -232,6 +249,7 @@ const SymptomQuestionnaire: React.FC<SymptomQuestionnaireProps> = ({
       }
     );
 
+    // Description field
     questions.push({
       id: 'description',
       label: 'Additional details about your symptoms',
@@ -244,9 +262,7 @@ const SymptomQuestionnaire: React.FC<SymptomQuestionnaireProps> = ({
 
   const questions = getQuestionsForBodyPart(bodyPart);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, any>>({
-    symptomDuration: { value: 1, unit: 'days' }
-  });
+  const [answers, setAnswers] = useState<Record<string, any>>({});
   const [showReview, setShowReview] = useState(false);
 
   const currentQuestion = questions[currentQuestionIndex];
@@ -256,6 +272,8 @@ const SymptomQuestionnaire: React.FC<SymptomQuestionnaireProps> = ({
       ...prev,
       [currentQuestion.id]: value
     }));
+    // Note: Error handling is done by parent component via error prop
+    // SymptomQuestionnaire does not control error state
   };
 
   const isQuestionVisible = (question: typeof currentQuestion) => {
@@ -508,45 +526,6 @@ const SymptomQuestionnaire: React.FC<SymptomQuestionnaireProps> = ({
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             placeholder="Please provide any additional details..."
           />
-        )}
-
-        {currentQuestion.type === 'duration' && (
-          <div className="flex items-center gap-4">
-            <input
-              type="number"
-              value={answers[currentQuestion.id]?.value || 1}
-              onChange={(e) => {
-                const newValue = {
-                  ...answers[currentQuestion.id],
-                  value: Number(e.target.value) || 1
-                };
-                handleAnswerChange(newValue);
-              }}
-              min={1}
-              max={365}
-              step={1}
-              className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-center text-xl font-medium"
-              required={currentQuestion.required}
-            />
-            <select
-              value={answers[currentQuestion.id]?.unit || 'days'}
-              onChange={(e) => {
-                const newValue = {
-                  ...answers[currentQuestion.id],
-                  unit: e.target.value
-                };
-                handleAnswerChange(newValue);
-              }}
-              className="ml-2 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            >
-              <option value="seconds">Seconds</option>
-              <option value="minutes">Minutes</option>
-              <option value="hours">Hours</option>
-              <option value="days">Days</option>
-              <option value="weeks">Weeks</option>
-              <option value="months">Months</option>
-            </select>
-          </div>
         )}
       </div>
 
