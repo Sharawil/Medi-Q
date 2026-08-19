@@ -176,7 +176,7 @@ const Login: React.FC = () => {
               autoComplete={isSetup ? "username" : "email"}
               required
               className="w-full px-4 py-3 bg-white text-slate-900 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors font-medium"
-              placeholder={isSetup ? "doc@medic.com" : "doc@medic.com"}
+              placeholder={isSetup ? "Enter username/email" : "doc@medic.com"}
               value={formData.username}
               onChange={handleChange}
             />
@@ -196,7 +196,7 @@ const Login: React.FC = () => {
                 autoComplete={isSetup ? "current-password" : "new-password"}
                 required
                 className="w-full px-4 py-3 bg-white text-slate-900 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors font-medium pr-12"
-                placeholder={isSetup ? "mediq123" : "Enter password (min 6 chars)"}
+                placeholder={isSetup ? "Enter password" : "Enter password (min 6 chars)"}
                 value={formData.password}
                 onChange={handleChange}
               />
