@@ -1,0 +1,76 @@
+# Node.js and npm
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+.pnp/
+.pnp.js
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Build outputs
+/dist
+/build
+/out
+/backend/dist
+/frontend/dist
+/backend/build
+/frontend/build
+
+# Logs
+logs
+*.log
+backend.log
+frontend.log
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+.nyc_output
+jest.config.js
+vitest.config.js
+
+# Misc
+.cache
+.temp
+backup*/
+*_backup.*
+*.tmp
+*.temp
+
+# Docker
+.dockerignore
+Dockerfile*
+docker-compose*
+
+# SSL certificates
+*.key
+*.cert
+*.pem
+
+# Miscellaneous
+.tmp/
+.temp/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env.local
+.env.development
+.env.production
+.env.test
